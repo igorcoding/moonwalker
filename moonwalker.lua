@@ -56,18 +56,19 @@ local function moonwalker(opts)
 	local o = {}
 	assert(opts.space, "Required option .space")
 	local space = opts.space
-	local waitevery = opts.pause or 1000
-	local takeby = opts.take or 500
+	local takeby = opts.take or 600
+	local waitevery = opts.pause or takeby*10
 	local examine = opts.examine
 	local updater = opts.actor or opts.updater
 	assert(type(updater) == 'function', "Need .actor funtion")
 	local dryrun = opts.dryrun or false
 	local limit = opts.limit or 2^63
 	local printevery = opts.progress or '2%'
+	if not opts.fp then opts.fp = 3 end
 
 	local index      = opts.index or space.index[0]
 	local keyfields  = create_keyfields(index)
-	if index.type ~= "TREE"then
+	if index.type ~= "TREE" then
 		error("Index "..index.name.." in space "..space.name.." is non-iteratable",2)
 	end
 
@@ -89,12 +90,13 @@ local function moonwalker(opts)
 		printevery = math.floor(size/4)
 	end
 
-	log.info("Processing %d items in %s mode; wait: 1/%d; take: %d", size, dryrun and "dryrun" or "real", waitevery, takeby)
+	log.info("Processing %d items in %s mode; wait: 1/%d; take: %d / %d %s", size, dryrun and "dryrun" or "real", waitevery, takeby, opts.fp or 1, opts.txn and "txn" or "single")
 	-- if true then return end
 
 	local working = true
-	local function batch_update(toupdate)
-		if not dryrun then		
+	local function batch_update_s(toupdate)
+		if not dryrun then
+			if opts.txn then box.begin() end
 			for _,v in ipairs(toupdate) do
 				local r,e = pcall(updater, v)
 				if not r then
@@ -105,7 +107,48 @@ local function moonwalker(opts)
 					break
 				end
 			end
+			if opts.txn then box.commit() end
 		end
+	end
+	local function batch_update_f(toupdate)
+		if not dryrun then
+			local N = opts.fp
+			local part = math.ceil(#toupdate/N)
+			local raise = false
+			
+			local wait = fiber.channel(1)
+			local cv = 0
+			for i = 0,N-1 do
+				local start = i*part+1
+				local finish = math.min((i+1)*part, #toupdate)
+				cv = cv + 1
+				fiber.create(function()
+					if opts.txn then box.begin() end
+					for x = start,finish do
+						local r,e = pcall(updater, toupdate[x])
+						if not r then
+							local t = tostring(toupdate[x])
+							if #t > 1000 then t = string.sub(t,1,995)..'...' end
+							raise = string.format("failed to update %s: %s",t,e)
+							working = false
+							break
+						end
+					end
+					if opts.txn and not raise then box.commit() end
+					cv = cv - 1
+					if cv == 0 then wait:put(true) end
+				end)
+			end
+			wait:get()
+			if raise then error(raise,3) end
+		end
+	end
+	local batch_update
+	
+	if opts.fp and opts.fp > 1 then
+		batch_update = batch_update_f
+	else
+		batch_update = batch_update_s
 	end
 
 	local it = iiterator( index, box.index.ALL )
@@ -174,6 +217,7 @@ local function moonwalker(opts)
 			prev = now
 		end
 	end
+	log.info("Processed %d, updated %d items in %s mode; wait: 1/%d; take: %d / %d %s", c-1, u, dryrun and "dryrun" or "real", waitevery, takeby, opts.fp or 1, opts.txn and "txn" or "single")
 	return { processed = c-1; updated = u; yields = csw }
 end
 

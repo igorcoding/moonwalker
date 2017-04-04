@@ -31,13 +31,15 @@ iterating over one space with the following logic:
 * `index` (optional) - the index to iterate by. If not defined, use the primary
   index.
 * `examine`: (optional, function:boolean) - called during phase #1 (collect).
-  **Must not yield**. 
+  **Must not yield**.
 * `actor`: (function, altname: updater) - called during phase #2 (update) for
   every examined tuple.
 * `pause`: `1000` (number) - make `fiber.yield` after stepping over this number
   of items.
-* `take`: `500` (number) - how many items should be collected before switching to
+* `take`: `600` (number) - how many items should be collected before switching to
   phase #2 (update).
+* `fp`: `3` (number) - fiber pool. how many fibers in parallel would update tuples
+* `txn`: `false` (boolean) - wrap update in transaction. Could improve the performance.
 * `dryrun`: `false` (boolean) - don't call the actor, only print the statistics.
 * `limit`: `2^63` (optional, number) - process not more than this number of items.
   Useful for testing.
