@@ -100,7 +100,7 @@ local function moonwalker(opts)
 				if not r then
 					local t = tostring(v)
 					if #t > 1000 then t = string.sub(t,1,995)..'...' end
-					error(3,string.format("failed to update %s: %s",t,e))
+					error(string.format("failed to update %s: %s",t,e),3)
 					working = false
 					break
 				end
