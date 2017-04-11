@@ -41,6 +41,7 @@ iterating over one space with the following logic:
 * `fp`: `3` (number) - fiber pool. how many fibers in parallel would update tuples
 * `txn`: `false` (boolean) - wrap update in transaction. Could improve the performance.
 * `dryrun`: `false` (boolean) - don't call the actor, only print the statistics.
+* `silent`: `false` (boolean) - don't do informational prints (useful for use in code)
 * `limit`: `2^63` (optional, number) - process not more than this number of items.
   Useful for testing.
 * `progress`: `2%` (optional, string or number) - print a progress message every

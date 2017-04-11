@@ -64,6 +64,7 @@ local function moonwalker(opts)
 	local dryrun = opts.dryrun or false
 	local limit = opts.limit or 2^63
 	local printevery = opts.progress or '2%'
+	local silent = opts.silent
 	if not opts.fp then opts.fp = 3 end
 
 	local index      = opts.index or space.index[0]
@@ -90,8 +91,9 @@ local function moonwalker(opts)
 		printevery = math.floor(size/4)
 	end
 
-	log.info("Processing %d items in %s mode; wait: 1/%d; take: %d / %d %s", size, dryrun and "dryrun" or "real", waitevery, takeby, opts.fp or 1, opts.txn and "txn" or "single")
-	-- if true then return end
+	if not silent then
+		log.info("Processing %d items in %s mode; wait: 1/%d; take: %d / %d %s", size, dryrun and "dryrun" or "real", waitevery, takeby, opts.fp or 1, opts.txn and "txn" or "single")
+	end
 
 	local working = true
 	local function batch_update_s(toupdate)
@@ -191,7 +193,7 @@ local function moonwalker(opts)
 			it = iiterator(index, box.index.GT, keyfields(v))
 		end
 		
-		if c % printevery == 0 then
+		if not silent and c % printevery == 0 then
 			local now = clock.time()
 			local r,e = pcall(function()
 				local run = now - start
@@ -217,7 +219,9 @@ local function moonwalker(opts)
 			prev = now
 		end
 	end
-	log.info("Processed %d, updated %d items in %s mode; wait: 1/%d; take: %d / %d %s", c-1, u, dryrun and "dryrun" or "real", waitevery, takeby, opts.fp or 1, opts.txn and "txn" or "single")
+	if not silent then
+		log.info("Processed %d, updated %d items in %s mode; wait: 1/%d; take: %d / %d %s", c-1, u, dryrun and "dryrun" or "real", waitevery, takeby, opts.fp or 1, opts.txn and "txn" or "single")
+	end
 	return { processed = c-1; updated = u; yields = csw }
 end
 
