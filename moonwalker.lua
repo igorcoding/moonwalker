@@ -39,7 +39,7 @@ local function create_keyfields(index)
 	for k,v in pairs(index.parts) do
 		table.insert(f, "t[".. v.fieldno .."]")
 	end
-	return loadstring('return function(t) return '..table.concat(f,",")..' end')()
+	return loadstring('return function(t) return {'..table.concat(f,",")..'} end')()
 end
 
 local function iiterator(index, itype, key)
