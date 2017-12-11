@@ -1,7 +1,7 @@
 package = 'moonwalker'
 version = 'scm-1'
 source  = {
-    url    = 'git://github.com/tarantool/moonwalker.git',
+    url    = 'git://github.com/igorcoding/moonwalker.git',
     branch = 'master',
 }
 description = {
