@@ -66,6 +66,7 @@ local function moonwalker(opts)
 	local printevery = opts.progress or '2%'
 	local silent = opts.silent
 	if not opts.fp then opts.fp = 3 end
+	local space_size_fun = opts.spaze_size_fun or function(space) return space:len() end
 
 	local index      = opts.index or space.index[0]
 	local keyfields  = create_keyfields(index)
@@ -73,7 +74,7 @@ local function moonwalker(opts)
 		error("Index "..index.name.." in space "..space.name.." is non-iteratable",2)
 	end
 
-	local size  = space:len()
+	local size  = space_size_fun(space)
 	local start = clock.time()
 	local prev  = start
 
